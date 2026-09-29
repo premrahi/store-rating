@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../db/db";
 import { users, type User } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { PublicUser } from "../types";
+import type { PublicUser } from "../types";
 
 const sign = (u: Pick<User, "id" | "role">): string =>
   jwt.sign(
@@ -59,5 +59,43 @@ export const login = async (
   }
 };
 
+export const me = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user!.id));
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(publicUser(user));
+  } catch (e) {
+    next(e);
+  }
+};
 
+export const changePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user!.id));
 
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash)))
+      return res.status(400).json({ messgae: "current password is incorrect" });
+
+    await db
+      .update(users)
+      .set({ passwordHash: await bcrypt.hash(newPassword, 10) })
+      .where(eq(users.id, user.id));
+
+    res.json({ message: "password updated successfully!" });
+  } catch (e) {
+    next(e);
+  }
+};
