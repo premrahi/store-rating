@@ -89,7 +89,6 @@ export const rateStore = async (
   }
 };
 
-
 export const ownerDashboard = async (
   req: Request,
   res: Response,
@@ -141,5 +140,3 @@ export const ownerDashboard = async (
     next(e);
   }
 };
-
-

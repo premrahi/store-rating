@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as auth from "../controllers/auth.controller.ts";
 import * as s from "../validators/schemas.ts";
 import * as store from "../controllers/store.controller.ts";
+import * as admin from "../controllers/admin.controller.ts";
 import { authenticate, authorize, validate } from "../middleware/index.ts";
 
 const router = Router();
@@ -24,7 +25,18 @@ router.put(
   store.rateStore
 );
 
+// STORE OWNER
 router.get('/owner/dashboard' , authenticate , authorize('OWNER'), store.ownerDashboard );
+
+
+// Admin
+const A = [authenticate, authorize('ADMIN')] as const;
+router.get('/admin/dashboard', ...A, admin.dashboard);
+router.post('/admin/users', ...A, validate(s.adminCreateUserSchema), admin.createUser);
+router.post('/admin/stores', ...A, validate(s.adminCreateStoreSchema), admin.createStore);
+router.get('/admin/users', ...A, admin.listUsers);
+router.get('/admin/users/:id', ...A, admin.getUser);
+router.get('/admin/stores', ...A, admin.listStores);
 
 
 

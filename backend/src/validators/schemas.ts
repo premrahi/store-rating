@@ -32,6 +32,24 @@ export const ratingSchema = z.object({
   rating: z.number().int().min(1).max(5),
 });
 
+
+export const adminCreateUserSchema = z.object({
+  name,
+  email,
+  address,
+  password,
+  role: z.enum(['ADMIN', 'USER', 'OWNER']),
+});
+export const adminCreateStoreSchema = z.object({
+  name,
+  email,
+  address,
+  ownerId: z.number().int().positive().optional(),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
+export type AdminCreateStoreInput = z.infer<typeof adminCreateStoreSchema>;
+export type RatingInput = z.infer<typeof ratingSchema>;

@@ -53,7 +53,13 @@ export const login = async (
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    res.json({ token: sign(user), user: publicUser(user) });
+   res
+  .cookie("token", sign(user), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000, // match JWT_EXPIRES_IN (1d)
+  }).json({ token: sign(user), user: publicUser(user) });
   } catch (e) {
     next(e);
   }
@@ -87,7 +93,7 @@ export const changePassword = async (
       .where(eq(users.id, req.user!.id));
 
     if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash)))
-      return res.status(400).json({ messgae: "current password is incorrect" });
+      return res.status(400).json({ message: "current password is incorrect" });
 
     await db
       .update(users)
