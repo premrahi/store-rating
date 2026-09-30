@@ -88,3 +88,58 @@ export const rateStore = async (
     next(e);
   }
 };
+
+
+export const ownerDashboard = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const [store] = await db
+      .select({ id: stores.id, name: stores.name })
+      .from(stores)
+      .where(eq(stores.ownerId, req.user!.id));
+
+    if (!store)
+      return res
+        .status(404)
+        .json({ message: "no store assigned to this owner!" });
+
+    const order = sortColumn(
+      req.query.sortBy as string,
+      req.query.order as string,
+      {
+        name: users.name,
+        email: users.email,
+        rating: ratings.rating,
+        date: ratings.updatedAt,
+      },
+      "date,",
+    );
+
+    const raters = await db
+      .select({
+        id: users.id,
+        nmae: users.name,
+        email: users.email,
+        rating: ratings.rating,
+        date: ratings.updatedAt,
+      })
+      .from(ratings)
+      .innerJoin(users, eq(users.id, ratings.userId))
+      .where(eq(ratings.storeId, store.id))
+      .orderBy(order);
+
+    const [{ avg }] = await db
+      .select({ avg: sql<number | null>`round(avg(${ratings.rating}), 1)` })
+      .from(ratings)
+      .where(eq(ratings.storeId, store.id));
+
+    res.json({ store, averageRating: avg, raters });
+  } catch (e) {
+    next(e);
+  }
+};
+
+

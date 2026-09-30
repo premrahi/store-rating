@@ -24,6 +24,8 @@ router.put(
   store.rateStore
 );
 
+router.get('/owner/dashboard' , authenticate , authorize('OWNER'), store.ownerDashboard );
+
 
 
 

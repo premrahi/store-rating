@@ -4,7 +4,7 @@ const name = z
   .string()
   .trim()
   .min(3, "Name must be at least 3 characters")
-  .max(60, "Name must be at least 3 characters");
+  .max(60, "Name must be at most 60 characters");
 
 const email = z.string().trim().email("Invalid Email");
 
