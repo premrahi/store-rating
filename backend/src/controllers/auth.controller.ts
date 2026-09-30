@@ -53,7 +53,13 @@ export const login = async (
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    res.json({ token: sign(user), user: publicUser(user) });
+   res
+  .cookie("token", sign(user), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000, // match JWT_EXPIRES_IN (1d)
+  }).json({ token: sign(user), user: publicUser(user) });
   } catch (e) {
     next(e);
   }

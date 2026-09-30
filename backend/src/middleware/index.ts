@@ -28,7 +28,8 @@ export const authenticate = async (
       .select({ role: users.role })
       .from(users)
       .where(eq(users.id, payload.id));
-    if (!user) return res.status(401).json({ message: "User no longer exists" });
+    if (!user)
+      return res.status(401).json({ message: "User no longer exists" });
 
     req.user = { ...payload, role: user.role };
     next();
