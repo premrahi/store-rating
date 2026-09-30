@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { JWTPayload } from "../types";
+import { JWTPayload, Role } from "../types/index.ts";
 import type { ZodSchema } from "zod";
 
 export const authenticate = (
@@ -41,4 +41,12 @@ export const validate =
 
     req.body = result.data;
     next();
+  };
+
+export const authorize =
+  (...roles: Role[]) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    req.user && roles.includes(req.user.role)
+      ? next()
+      : res.status(403).json({ message: "forbidden" });
   };

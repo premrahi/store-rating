@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db } from "../db/db";
-import { users, type User } from "../db/schema";
+import { db } from "../db/db.ts";
+import { users, type User } from "../db/schema.ts";
 import { eq } from "drizzle-orm";
-import type { PublicUser } from "../types";
+import type { PublicUser } from "../types/index.ts";
 
 const sign = (u: Pick<User, "id" | "role">): string =>
   jwt.sign(
