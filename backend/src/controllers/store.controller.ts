@@ -47,7 +47,7 @@ export const listStores = async (
       .leftJoin(ratings, eq(ratings.storeId, stores.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .groupBy(stores.id)
-      .orderBy(order);
+      .orderBy(sql`${order} nulls last`);
 
     res.json(rows);
   } catch (e) {
@@ -62,6 +62,8 @@ export const rateStore = async (
 ) => {
   try {
     const storeId = Number(req.params.id);
+    if (!Number.isInteger(storeId) || storeId < 1)
+      return res.status(400).json({ message: "invalid store id" });
     const [store] = await db
       .select({ id: stores.id })
       .from(stores)
@@ -86,4 +88,3 @@ export const rateStore = async (
     next(e);
   }
 };
-

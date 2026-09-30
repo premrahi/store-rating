@@ -8,12 +8,16 @@ export const likeFilters = (
 ): SQL[] => {
   const conditions: SQL[] = [];
   for (const [key, col] of Object.entries(columns)) {
-    const value = query[key];
-    if (value) conditions.push(ilike(col, `%${value}%`));
+    const raw = query[key];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof value === "string" && value) {
+      conditions.push(ilike(col, `%${value}%`));
+    }
   }
 
   return conditions;
 };
+
 
 export const sortColumn = (
   sortBy: string | undefined,
