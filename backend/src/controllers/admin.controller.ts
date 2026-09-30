@@ -1,11 +1,20 @@
-import type { NextFunction, Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import { and, eq, sql } from 'drizzle-orm';
-import { db } from '../db/db.ts';
-import { ratings, stores, users } from '../db/schema.js';
-import { likeFilters, sortColumn } from './helper.ts';
+import type { NextFunction, Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import { and, eq, sql } from "drizzle-orm";
+import { db } from "../db/db.ts";
+import { ratings, stores, users } from "../db/schema.js";
+import { likeFilters, sortColumn } from "./helper.ts";
 
-export const dashboard = async (req: Request, res: Response, next: NextFunction) => {
+const VALID_ROLES = ["ADMIN", "USER", "OWNER"] as const;
+type RoleFilter = (typeof VALID_ROLES)[number];
+const isValidRole = (v: unknown): v is RoleFilter =>
+  VALID_ROLES.includes(v as RoleFilter);
+
+export const dashboard = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const [{ count: userCount }] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -22,12 +31,22 @@ export const dashboard = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-export const createUser = async (req: Request, res: Response, next: NextFunction) => {
+export const createUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { name, email, address, password, role } = req.body;
     const [created] = await db
       .insert(users)
-      .values({ name, email, address, passwordHash: await bcrypt.hash(password, 10), role })
+      .values({
+        name,
+        email,
+        address,
+        passwordHash: await bcrypt.hash(password, 10),
+        role,
+      })
       .returning({ id: users.id });
     res.status(201).json({ id: created.id });
   } catch (e) {
@@ -35,15 +54,22 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const createStore = async (req: Request, res: Response, next: NextFunction) => {
+export const createStore = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { name, email, address, ownerId } = req.body;
     if (ownerId) {
       const [owner] = await db
         .select({ id: users.id })
         .from(users)
-        .where(and(eq(users.id, ownerId), eq(users.role, 'OWNER')));
-      if (!owner) return res.status(400).json({ message: 'ownerId must be an existing Store Owner' });
+        .where(and(eq(users.id, ownerId), eq(users.role, "OWNER")));
+      if (!owner)
+        return res
+          .status(400)
+          .json({ message: "ownerId must be an existing Store Owner" });
     }
     const [created] = await db
       .insert(stores)
@@ -56,7 +82,11 @@ export const createStore = async (req: Request, res: Response, next: NextFunctio
 };
 
 // Filters: name, email, address, role | Sort: sortBy, order
-export const listUsers = async (req: Request, res: Response, next: NextFunction) => {
+export const listUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const query = req.query as Record<string, unknown>;
     const conditions = likeFilters(query, {
@@ -64,17 +94,31 @@ export const listUsers = async (req: Request, res: Response, next: NextFunction)
       email: users.email,
       address: users.address,
     });
-    if (query.role) conditions.push(eq(users.role, query.role as 'ADMIN' | 'USER' | 'OWNER'));
-
+    if (query.role) {
+      if (!isValidRole(query.role))
+        return res.status(400).json({ message: "Invalid role filter" });
+      conditions.push(eq(users.role, query.role));
+    }
     const order = sortColumn(
       req.query.sortBy as string,
       req.query.order as string,
-      { name: users.name, email: users.email, address: users.address, role: users.role },
-      'name',
+      {
+        name: users.name,
+        email: users.email,
+        address: users.address,
+        role: users.role,
+      },
+      "name",
     );
 
     const rows = await db
-      .select({ id: users.id, name: users.name, email: users.email, address: users.address, role: users.role })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        address: users.address,
+        role: users.role,
+      })
       .from(users)
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(order);
@@ -84,7 +128,11 @@ export const listUsers = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-export const listStores = async (req: Request, res: Response, next: NextFunction) => {
+export const listStores = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const query = req.query as Record<string, unknown>;
     const conditions = likeFilters(query, {
@@ -96,8 +144,13 @@ export const listStores = async (req: Request, res: Response, next: NextFunction
     const order = sortColumn(
       req.query.sortBy as string,
       req.query.order as string,
-      { name: stores.name, email: stores.email, address: stores.address, rating: sql`rating` },
-      'name',
+      {
+        name: stores.name,
+        email: stores.email,
+        address: stores.address,
+        rating: sql`rating`,
+      },
+      "name",
     );
 
     const rows = await db
@@ -106,7 +159,7 @@ export const listStores = async (req: Request, res: Response, next: NextFunction
         name: stores.name,
         email: stores.email,
         address: stores.address,
-        rating: sql<number | null>`round(avg(${ratings.rating}), 1)`,
+        rating: sql<number | null>`round(avg(${ratings.rating})::numeric, 1)::float8`,
       })
       .from(stores)
       .leftJoin(ratings, eq(ratings.storeId, stores.id))
@@ -119,17 +172,29 @@ export const listStores = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const getUser = async (req: Request, res: Response, next: NextFunction) => {
+export const getUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const [user] = await db
-      .select({ id: users.id, name: users.name, email: users.email, address: users.address, role: users.role })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        address: users.address,
+        role: users.role,
+      })
       .from(users)
       .where(eq(users.id, Number(req.params.id)));
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (user.role === 'OWNER') {
+    if (user.role === "OWNER") {
       const [row] = await db
-        .select({ rating: sql<number | null>`round(avg(${ratings.rating}), 1)` })
+        .select({
+          rating: sql<number | null>`round(avg(${ratings.rating}), 1)`,
+        })
         .from(stores)
         .leftJoin(ratings, eq(ratings.storeId, stores.id))
         .where(eq(stores.ownerId, user.id));

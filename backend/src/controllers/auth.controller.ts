@@ -93,7 +93,7 @@ export const changePassword = async (
       .where(eq(users.id, req.user!.id));
 
     if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash)))
-      return res.status(400).json({ messgae: "current password is incorrect" });
+      return res.status(400).json({ message: "current password is incorrect" });
 
     await db
       .update(users)
