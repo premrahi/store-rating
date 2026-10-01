@@ -19,9 +19,8 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user = action.payload.user;
 
-      // Save token in cookie (expires in 7 days, available across the site)
       Cookies.set('token', action.payload.token, {
-        expires: 7,
+        expires: 1,
         path: '/',
         sameSite: 'lax',
         secure: window.location.protocol === 'https:',
@@ -34,7 +33,7 @@ const authSlice = createSlice({
       state.token = null;
       state.user = null;
 
-      // Remove token cookie
+      
       Cookies.remove('token', { path: '/' });
     },
   },
