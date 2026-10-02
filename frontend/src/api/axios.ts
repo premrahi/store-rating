@@ -1,0 +1,31 @@
+import axios, { type AxiosError } from "axios";
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const errMsg = (error: unknown): string => {
+  const e = error as AxiosError<{
+    message?: string;
+    errors?: Array<{ field: string; message: string }>;
+  }>;
+  const data = e.response?.data;
+
+  if (data?.errors?.length) {
+    return data.errors
+      .map((item) => `${item.field}: ${item.message}`)
+      .join(", ");
+  }
+
+  return data?.message || e.message || "Something went wrong";
+};
+
+export default api;
