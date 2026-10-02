@@ -1,96 +1,90 @@
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { changePassword } from "../store/authSlice";
+import { useAppDispatch } from "../store/hooks";
+import { checkPassword } from "../utils/validate";
+import PageHeader from "../components/PageHeader";
+import PasswordInput from "../components/PasswordInput";
 
-const ChangePassword = () => {
-  // State for toggling visibility
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-
+export default function ChangePassword() {
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "" });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const dispatch = useAppDispatch();
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setForm((v) => ({ ...v, [e.target.name]: e.target.value }));
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    const problem = checkPassword(form.newPassword);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    try {
+      const res = await dispatch(changePassword(form)).unwrap();
+      setSuccess(res.message);
+      setForm({ currentPassword: "", newPassword: "" });
+    } catch (err) {
+      setError(String(err));
+    }
+  };
   return (
-    <div className="mx-auto flex justify-center h-screen items-center">
-      <Card className="w-full max-w-sm bg-slate-50">
-        <CardHeader>
-          <CardTitle className="text-2xl">Change Password</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form>
-            <div className="flex flex-col gap-6">
-              {/* Current Password Field */}
-              <div className="grid gap-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <div className="relative">
-                  <Input
-                    id="current-password"
-                    type={showCurrentPassword ? "text" : "password"}
-                    placeholder="Enter current password"
-                    required
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    aria-label={showCurrentPassword ? "Hide password" : "Show password"}
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              {/* New Password Field */}
-              <div className="grid gap-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="new-password"
-                    type={showNewPassword ? "text" : "password"}
-                    placeholder="Enter new password"
-                    required
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    aria-label={showNewPassword ? "Hide password" : "Show password"}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button type="submit" className="w-full">
-            Set new password
-          </Button>
-        </CardFooter>
-      </Card>
+    <div className="page-shell max-w-2xl">
+      <PageHeader
+        eyebrow="Account"
+        title="Change password"
+        description="Keep your account secure with a strong, unique password."
+      />
+      <form
+        onSubmit={handleSubmit}
+        className="card border-base-300/70 bg-base-100 shadow-soft"
+      >
+        <div className="card-body gap-5">
+          <PasswordInput
+            label="Current password"
+            name="currentPassword"
+            value={form.currentPassword}
+            onChange={handleChange}
+            required
+          />
+          <PasswordInput
+            label="New password"
+            name="newPassword"
+            value={form.newPassword}
+            onChange={handleChange}
+            required
+          />
+          <p className="text-xs text-base-content/50">
+            8–16 characters, including one uppercase letter and one special
+            character.
+          </p>
+          {error && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
+          <button className="btn btn-primary rounded-xl">
+            Update password
+          </button>
+        </div>
+      </form>
     </div>
   );
-};
-
-export default ChangePassword;
+}
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="form-control gap-2">
+      <span className="label-text font-semibold">{label}</span>
+      {children}
+    </label>
+  );
+}
